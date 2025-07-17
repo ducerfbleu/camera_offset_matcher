@@ -24,10 +24,11 @@ def parse_gps_log(csv_path, line_starts):
         lines_to_skip = new_line - 1
         df = pd.read_csv(csv_path, skiprows = lines_to_skip)
         df.columns = df.columns.str.strip()
-
+        return df
+    
     except Exception as e:
-        print('Error: {e}')
-    return df
+        print(f'Error: {e}')
+    
 
 def epoch_ms_to_datetime(epoch_ms, target_utc = datetime.timezone.utc):
 
