@@ -107,5 +107,17 @@ bash camera_offset_matcher/match_dt_and_geotag.sh -g cam_Project1_2025-05-08_gps
 - It uses total three different algorithm, forward match, backward match, and dynamic time wrapping to conduct the exact match.
 - Dynamic time wrapping is supposed to address dynamic offset, however, it doesn't work always. In case it fails, the algorithm defaults to forward / backward match.
 
+## 3. reverse the exif update in a directory
+
+- find all files with .JPG, exclude files with .JPG_original, then remove all files with .JPG
+
+```bash
+find -type f -name "*.JPG" ! -name "*.JPG_original" -exec rm {} + 
+```
+
+- replace the extension of the original files from .JPG_original to .JPG
+```bash
+find -type f -name "*.JPG_original" -print0 | xargs -0 -n1 bash -c 'mv -- "$1" "${1%.JPG_original}.JPG" ' _
+```
 
 
