@@ -29,7 +29,7 @@ target_col = args.target_column
 filename = args.filename
 basename = os.path.basename(filename).split(".")[0]
 dirname  = os.path.dirname(filename)
-
+print(args.line_begins)
 df= parse_gps_log(filename, args.line_begins) #pd.read_csv(filename)
 print(df.columns)
 print(df.head)

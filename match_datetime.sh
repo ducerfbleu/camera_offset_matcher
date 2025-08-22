@@ -1,10 +1,11 @@
 #!/bin/bash
 set -e # exit when non-zero exit status
 usage(){
-	echo "Usage: $(basename "$0") -g <.csv file path> -i <directory>"
+	echo "Usage: $(basename "$0") -g <.csv file path> -i <directory> -o <directory>"
 	echo "             where command is one of the following: "
 	echo "                   g (gps_csv)                  - parsed gps csv log file---output of parse_gpslog_and_reformat.py"
 	echo "                   i (image_dir)                - Enter path to camera image files"
+    echo "                   o (output_dir)               - Enter dir to output matching results"
     echo "Please note that this script depends on the following:"
     echo " 1. exiftool"
     echo " 2. geotagre.py"
@@ -14,21 +15,22 @@ usage(){
 
 }
 
-while getopts ":h:g:i:" opt; do
+while getopts ":h:g:i:o:" opt; do
 	case "$opt" in 
 		h)
 			usage
 			exit 1
-			;;
+			;; 
 
 		g) GPS_LOG=$OPTARG ;;
 		i) IMG_DIR=$OPTARG ;;
+        o) OUT_DIR=$OPTARG ;;
 		\\?) echo "invalid option has been entered: $OPTARG" >&2; exit1 ;;
 	esac
 done
 
-if [[ -z $GPS_LOG || -z $IMG_DIR ]]; then
-    echo "Error: both -i (image_dir) and -g (gps_csv) are mendatory arguments."; 
+if [[ -z $GPS_LOG || -z $IMG_DIR || -z $OUT_DIR ]]; then
+    echo "Error: -i (image_dir) and -g (gps_csv) -o (output_dir) are mendatory arguments."; 
     usage ;
     exit 1;
 fi
@@ -56,6 +58,10 @@ echo "Done."
 
 printf "\n*******\n"
 ## simple matching method, including dynamic time wrapping.
+
+mkdir -p $OUT_DIR
+
 echo "Matching camera datetime to GPS datetime for geotagging..."
-python $CURR_DIR/match_datetime_v3.py -gps $GPS_LOG -exif ${OUT_NAME}_exif_corrected_dt.csv -n 8 -o ${OUT_NAME}_MATCHED.csv
-echo "Done. Check if geotagging went well in $IMG_DIR. e.g., exiftool -GPS* -Date* [image_name.jpg]"
+python $CURR_DIR/match_datetime_v4.py -gps $GPS_LOG -exif ${OUT_NAME}_exif_corrected_dt.csv -n 8 -o ${OUT_NAME}_MATCHED -od ${OUT_DIR}
+echo "Done. matching results are in ${OUT_DIR}."
+#"Check if geotagging went well in $IMG_DIR. e.g., exiftool -GPS* -Date* [image_name.jpg]"

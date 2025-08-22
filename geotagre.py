@@ -15,6 +15,7 @@ import glob
 import os
 import pandas as pd
 import subprocess
+from dtw import stepPattern
 
 # functions for parse_gpslog_and_reformat_dt.py:
 
@@ -24,10 +25,11 @@ def parse_gps_log(csv_path, line_starts):
         lines_to_skip = new_line - 1
         df = pd.read_csv(csv_path, skiprows = lines_to_skip)
         df.columns = df.columns.str.strip()
+        return df
 
     except Exception as e:
-        print('Error: {e}')
-    return df
+        print(f'Error: {e}')
+
 
 def epoch_ms_to_datetime(epoch_ms, target_utc = datetime.timezone.utc):
 
@@ -91,13 +93,13 @@ def calc_offset(json_dat, camera_dt_format = "%Y-%m-%d %H:%M:%S" ):
     offset = gps_time - camera_time
     return offset
 
-def resolv_offset(df_exif, dt_col, offset, new_col = 'updated_datetime'):
+def resolv_offset(df_exif, dt_col, offset, new_col = 'updated_datetime', camera_dt_format ="%Y:%m:%d %H:%M:%S"):
     # get offset
     df_exif = deepcopy(df_exif)
     ls_dates_to_update = df_exif[dt_col]
     ls_updated_dates = []
     for focal_date in ls_dates_to_update:
-        focal_date_obj = datetime.datetime.strptime(focal_date, "%Y:%m:%d %H:%M:%S")
+        focal_date_obj = datetime.datetime.strptime(focal_date, camera_dt_format)
         updated_focal_date_obj = focal_date_obj + offset
         updated_focal_date_obj = updated_focal_date_obj.strftime("%Y-%m-%d %H:%M:%S.%f")
         updated_date = updated_focal_date_obj
@@ -125,13 +127,14 @@ def match_timestamps_idx(gps_df, camera_df,
 
     # sort by timestamp
     df1 = df1.sort_values(by = 'datetime', 
-            ascending = True
+            ascending = ASCENDING_TF #True
             ).reset_index(
             drop = True)
     df2 = df2.sort_values( by = 'datetime', 
             ascending = ASCENDING_TF
             ).reset_index(
             drop = True)
+    print(df2.head())
 
     matched_data = []
     # print(len(df2))
@@ -173,15 +176,15 @@ def insert_new_match(df_gps,
             ascending = True
             ).reset_index(
             drop = True)
-    df_camera = deepcopy(df_camera)
-    df_camera = df_camera.sort_values( by = camera_dt_col, 
+    df_camera_copy = deepcopy(df_camera)
+    df_camera_copy = df_camera_copy.sort_values( by = camera_dt_col, 
             ascending = ASCENDING_TF
             ).reset_index(
             drop = True)
     camera_datetime = pd.to_datetime(
-        df_camera[camera_dt_col]#, format='%Y:%m:%d %H:%M:%S'
+        df_camera_copy[camera_dt_col]#, format='%Y:%m:%d %H:%M:%S'
     )
-    file_path = df_camera[file_path_col]
+    file_path = df_camera_copy[file_path_col]
     # file_name = df_camera[file_name_col]
     df_gps_copy[new_dt_col] = camera_datetime.set_axis(
         ls_matching_idx
@@ -199,11 +202,55 @@ def insert_new_match(df_gps,
     print(f"Average time difference:{avg_time_diff: .3f} seconds.")
     return df_gps_copy, avg_time_diff
 
+def insert_new_match_v2(df_gps, 
+                     df_camera, 
+                     ls_matching_idx,
+                     ASCENDING_TF, 
+                     camera_dt_col = 'updated_dates', 
+                     new_dt_col = 'adjusted_camera_datetime',
+                     file_path_col = 'file_path',
+                     # file_name_col = 'file_name',
+                     gps_dt_col = 'datetime'):
+    # 8/16/2025 changes: changed rel path to abs path, changes set_axis to reindex to allow for duplicate indices 
+    df_gps_copy = deepcopy(df_gps)
+    df_gps_copy = df_gps_copy.sort_values( by = gps_dt_col, 
+            ascending = ASCENDING_TF #True
+            ).reset_index(
+            drop = True)
+    df_camera_copy = deepcopy(df_camera)
+    df_camera_copy = df_camera_copy.sort_values( by = camera_dt_col, 
+            ascending = ASCENDING_TF
+            ).reset_index(
+            drop = True)
+    camera_datetime = pd.to_datetime(
+        df_camera_copy[camera_dt_col]#, format='%Y:%m:%d %H:%M:%S'
+    )
+    file_path = pd.Series([os.path.abspath(path) for path in df_camera_copy[file_path_col]])
+    # file_name = df_camera[file_name_col]
+    df_gps_copy[new_dt_col] = camera_datetime.reindex(
+        ls_matching_idx
+    )
+    df_gps_copy[file_path_col] = file_path.reindex(ls_matching_idx)
+    # df_gps_copy[file_name_col] = file_name.set_axis(ls_matching_idx)    
+    timediff = df_gps_copy.iloc[ls_matching_idx].apply(lambda row:\
+                                    get_timediff(
+                                    row[gps_dt_col],
+                                    row[new_dt_col]
+                                    ),
+                                    axis = 1)
+    df_gps_copy['time_diff_sec'] = timediff.reindex(ls_matching_idx) 
+    avg_time_diff = np.mean(df_gps_copy['time_diff_sec'])
+    print(f"Average time difference:{avg_time_diff: .3f} seconds.")
+    return df_gps_copy, avg_time_diff
+
 def conduct_dtw(df_gps, 
                 df_camera,
                 gps_dt_col = 'datetime',
                 camera_dt_col = 'updated_dates',
                 ASCENDING_TF = True):
+    """ previous version of dynamic time wrapping.
+    Fails pretty often. See conduct_dtw_v2.
+    """
     df_gps = deepcopy(df_gps)
     gps_time = pd.to_datetime(
         df_gps[gps_dt_col]
@@ -238,4 +285,62 @@ def conduct_dtw(df_gps,
             ).tolist()
         ]
     return ls_matching_idx
+
+def get_ts_cumsum(data_frame, COLNAME, need_parsing = False, parse_format = "%Y:%m:%d %H:%M:%S"):
+    if need_parsing:
+        ts_ = pd.Series([datetime.datetime.strptime(dt, parse_format) for dt in data_frame[COLNAME]])
+        pd_cumsum = ts_.diff().dt.total_seconds().cumsum()
+    else:
+        pd_cumsum = pd.to_datetime(data_frame[COLNAME]).diff().dt.total_seconds().cumsum()
+    
+    pd_cumsum[0] = 0
+    return pd_cumsum
+
+def conduct_dtw_v2(df_gps, 
+                df_camera,
+                gps_dt_col = 'datetime',
+                camera_dt_col = 'updated_dates',
+                STEP_PATTERN = stepPattern.asymmetric):
+
+    """
+    asymmetric pattern allows for selecting unique camera datetime, which is useful in this case. 
+    It maybe worthwhile to test other methods. 
+    """
+    df_gps_copy = deepcopy(df_gps).rename(columns = {'index':'gps_index'})
+    print(df_gps_copy)
+    #df_gps_copy.reset_index(inplace = True)
+    #is_duplicated = df_gps_copy.index.duplicated()
+    #print(df_gps_copy[is_duplicated])
+    # df_gps_copy = df_gps_copy.sort_values( by = gps_dt_col, 
+    #         ascending = True
+    #         ).reset_index(
+    #         drop = True
+    #         )
+    df_camera_copy = deepcopy(df_camera).rename(columns = {'index': 'camera_index'})
+    print(df_camera_copy)
+    #df_camera_copy.reset_index(inplace = True)
+    #is_duplicated = df_camera_copy.index.duplicated()
+    #print(df_camera_copy[is_duplicated])
+    # df_camera_copy = df_camera_copy.sort_values( by = camera_dt_col, 
+    #         ascending = True
+    #         ).reset_index(
+    #         drop = True)
+
+    gps_cumsum = get_ts_cumsum(df_gps_copy, gps_dt_col)
+    camera_cumsum = get_ts_cumsum(df_camera_copy, camera_dt_col)
+    
+    dtw_align = dtw(camera_cumsum, gps_cumsum, keep_internals = True, step_pattern = STEP_PATTERN)
+    print(len(dtw_align.index2.tolist()))
+    print(len(dtw_align.index1.tolist()))
+    df_matched_ = pd.concat(
+    [df_gps_copy.loc[dtw_align.index2.tolist()].reset_index(drop=True), 
+     df_camera_copy.loc[dtw_align.index1.tolist()].reset_index(drop=True)], 
+    axis = 1)
+    df_matched_['time_diff_sec'] = (pd.to_datetime(
+    df_matched_['datetime']
+    ) - pd.to_datetime(
+    df_matched_['updated_datetime']
+    )
+    ).dt.total_seconds()
+    return df_matched_
 

@@ -14,16 +14,19 @@ from geotagre import *
 parser = argparse.ArgumentParser(description="correct offsets and update datetime in exif")
 parser.add_argument("-gps", "--gps_csv", help="Path to gps csv file")
 parser.add_argument("-exif", "--img_exif", help="Path to image exif csv")
+parser.add_argument("-o", "--out_dir", help="Path for out directory", default = ".")
+parser.add_argument("-df", "--dt_format", help="camera datetime format", default = "%Y:%m:%d %H:%M:%S")
 args = parser.parse_args()
 #sys.argv
 csv_path = args.img_exif
+out_dir = args.out_dir
 # json_path = args.img_exif
 
 gps_dt_col_ = 'datetime'
 camera_dt_col_ = 'DateTimeOriginal'
 fn_col_ = 'SourceFile'
 reg_dt_format = "%Y-%m-%d %H:%M:%S"
-camera_dt_format = "%Y:%m:%d %H:%M:%S"
+camera_dt_format = args.dt_format
 dt_format_ms = "%Y-%m-%d %H:%M:%S.%f"
 
 # # open json file
@@ -50,7 +53,8 @@ except Exception as e:
 json_dat = extract_datetime_to_dict(df_gps, 
                          df_img_exif,
                         gps_dt_col = gps_dt_col_,
-                        camera_dt_col = camera_dt_col_
+                        camera_dt_col = camera_dt_col_,
+                        camera_dt_format = camera_dt_format
                                    )
 print(f'First datetime extracted from "{args.gps_csv}" and "{args.img_exif}":')
 print(json_dat)
@@ -60,12 +64,13 @@ print(f'Offset="{offset_}"')
 df_output = resolv_offset(df_img_exif, 
                           camera_dt_col_, 
                           offset_, 
-                          new_col = 'updated_datetime')
+                          new_col = 'updated_datetime',
+                         camera_dt_format = camera_dt_format)
 
 abs_image_path = os.path.abspath(csv_path)
 file_name = os.path.basename(csv_path)
 file_name = file_name.split(".csv")[0]
 dir_name = "_".join(abs_image_path.split("/")[-2:-1])
 out_csv_name = file_name+"_corrected_dt.csv"
-df_output.to_csv(out_csv_name, index = False)
+df_output.to_csv(os.path.join(out_dir, out_csv_name), index = False)
 print(f'Saved output to: "{out_csv_name}"')
