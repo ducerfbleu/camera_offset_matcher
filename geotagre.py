@@ -57,6 +57,37 @@ def run_command(command):
     result = subprocess.run(command, capture_output = True, text= True)
     return result.stdout
 
+def run_command_shell(command):
+    result = subprocess.run(command, shell = True, capture_output = True, text= True)
+    return result.stdout
+
+def run_insert_prev_dt(image_path):
+    try:
+        #1. Extract DateTimeOriginal from image
+        dt_extract = subprocess.run(
+            ['exiftool', '-b', '-DateTimeOriginal', image_path],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        prev_date_time = dt_extract.stdout.strip()
+    
+
+        #2. insert the datetime info to UserComment
+        user_comment_json = f'{{"PrevDateTime":"{prev_date_time}"}}'
+        subprocess.run(
+            ['exiftool', f'-UserComment={user_comment_json}', image_path],
+            check=True
+        )
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error processing {image_path}:{e}")
+    except Exception as e:
+        print(f"An expected error occurred for {image_path}: {e}")
+
+
+
+
 ### ftns to extract datetime from gps csv and camera exif
 
 def extract_datetime_to_dict(

@@ -10,7 +10,7 @@ import argparse
 from geotagre import match_timestamps_idx, insert_new_match, conduct_dtw, run_command
 import os
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(add_help = True)
 parser.add_argument("-c", "--csv", help="input csv with time series", required= True)
 parser.add_argument("-tc", "--ts_col", help="time series column to refer", required = True)
 parser.add_argument("-o", "--out_dir", help="dir to output the results", default = ".")
@@ -43,11 +43,14 @@ df_csv[COL_DT] = pd.to_datetime(
     format = DT_FORMAT
 )
 # order time series in sequence first
-df_csv = df_csv.sort_values( by = COL_DT, 
-            ascending = True
-            ).reset_index()
+# df_csv = df_csv.sort_values( by = COL_DT, 
+#             ascending = True
+#             ).reset_index()
+# this caused a ot of errors so removed 8/26/25
 
-BOOL_IDX = df_csv[COL_DT].diff().dt.total_seconds()>DIFF_THRES
+df_csv = df_csv.reset_index()
+
+BOOL_IDX = np.abs(df_csv[COL_DT].diff().dt.total_seconds())>DIFF_THRES
 
 split_indices = np.where(BOOL_IDX)[0].tolist()
 

@@ -10,7 +10,7 @@ usage(){
     echo " 1. exiftool"
     echo " 2. geotagre.py"
     echo " 3. reconsile_offset_v3.py"
-    echo " 4. match_datetime_v3.py"
+    echo " 4. match_datetime_v4.py"
    	exit 1
 
 }
@@ -94,4 +94,12 @@ for num in $(seq 0 $(("NUM_GPS_SPLIT"-1))); do
 done
 
 python $CURR_DIR/merge_dataframes.py -b ${BASENAME_IMG_EXIF} -o ${OUT_DIR}
+
+# echo "Backing up previous DateTimeOriginal field in UserComment field... in $IMG_DIR..."
+
+# find $IMG_DIR -type f -name "*.JPG" -print0 | while IFS= read -r -d $'\0' file; do
+#     PrevDateTime=$(exiftool -b -DateTimeOriginal "$file")
+#     exiftool -UserComment="{\"PrevDateTime\":\"$PrevDateTime\"}" "$file"
+# done
+# echo "Done."
 
