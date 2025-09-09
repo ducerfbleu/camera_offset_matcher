@@ -1,3 +1,13 @@
+# 9/9/2025
+
+Update: match_datetime.sh and match_datetime_split.sh assumes that the image data and the GPS data is in time-orderly fashion.
+
+# 9/7/2025
+
+Update: removed previous datetime insert to the UserComment from 'macth_datetime.sh', since single-core processing took forever.
+geotag_images.py now handles the inesertion via multiprocessing. 
+
+
 # Camera-offset Matcher
 GPS log parsing & camera date time exact matching script.
 

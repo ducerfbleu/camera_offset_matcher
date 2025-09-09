@@ -88,15 +88,15 @@ for index, row in fin_trim.iterrows():
     
     ls_cli_commands += [cli_command]
     ls_cli_dtbackup += [file_path]
-print(os.getcwd())
-print(os.listdir())
-print(ls_cli_dtbackup[0])
-print(ls_cli_dtbackup[1])
-print(ls_cli_dtbackup[2])
+# print(os.getcwd())
+# print(os.listdir())
+# print(ls_cli_dtbackup[0])
+# print(ls_cli_dtbackup[1])
+# print(ls_cli_dtbackup[2])
 
-print(ls_cli_commands[0])
-print(ls_cli_commands[1])
-print(ls_cli_commands[2])
+# print(ls_cli_commands[0])
+# print(ls_cli_commands[1])
+# print(ls_cli_commands[2])
 
 print("Start backing up Previous DateTimeOriginal to UserComment...")
 with multiprocessing.Pool(processes = NUM_CPU) as pool:

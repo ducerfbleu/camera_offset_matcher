@@ -106,8 +106,8 @@ def extract_datetime_to_dict(
     df_image_exif[camera_dt_col],
         format = camera_dt_format
     )
-    df1 = df1.sort_values().tolist()
-    df2 = df2.sort_values().tolist()
+    # df1 = df1.sort_values().tolist()
+    # df2 = df2.sort_values().tolist()
 
     df1_f = [dt.strftime(gps_dt_format) for dt in df1]
     df2_f = [dt.strftime(camera_dt_format) for dt in df2]

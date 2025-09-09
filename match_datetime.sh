@@ -60,13 +60,13 @@ printf "\n*******\n"
 ## simple matching method, including dynamic time wrapping.
 
 mkdir -p $OUT_DIR
-echo "Backing up previous DateTimeOriginal field in UserComment field... in $IMG_DIR..."
+# echo "Backing up previous DateTimeOriginal field in UserComment field... in $IMG_DIR..."
 
-find $IMG_DIR -type f -name "*.JPG" -print0 | while IFS= read -r -d $'\0' file; do
-    PrevDateTime=$(exiftool -b -DateTimeOriginal "$file")
-    exiftool -UserComment="{\"PrevDateTime\":\"$PrevDateTime\"}" "$file"
-done
-echo "Done."
+# find $IMG_DIR -type f -name "*.JPG" -print0 | while IFS= read -r -d $'\0' file; do
+#     PrevDateTime=$(exiftool -b -DateTimeOriginal "$file")
+#     exiftool -UserComment="{\"PrevDateTime\":\"$PrevDateTime\"}" "$file"
+# done
+# echo "Done."
 echo "Matching camera datetime to GPS datetime for geotagging..."
 python $CURR_DIR/match_datetime_v4.py -gps $GPS_LOG -exif ${OUT_NAME}_exif_corrected_dt.csv -n 8 -o ${OUT_NAME}_MATCHED -od ${OUT_DIR}
 echo "Done. matching results are in ${OUT_DIR}."
