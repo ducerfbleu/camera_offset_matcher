@@ -35,6 +35,26 @@ if [[ -z $GPS_LOG || -z $IMG_DIR || -z $OUT_DIR ]]; then
     exit 1;
 fi
 
+
+# set pipefail: Make a pipeline's return status the rightmost command that failed.
+set -o pipefail
+
+# function to run a command and check its exit status
+run_and_capture() {
+    local output
+    # Capture output and redirect stderr to stdout
+    output=$( ( "$@" ) 2>&1 )
+    local exit_status=$?
+
+    if [ "$exit_status" -ne 0 ]; then
+        echo "Error: Command failed." >&2
+        echo "Details: $output" >&2
+        exit "$exit_status"
+    fi
+
+    echo "$output" # Return the output
+}
+
 CURR_DIR=$(dirname $(realpath "$0"))
 echo "** gps_csv: $GPS_LOG"
 echo "** image_path: $IMG_DIR"
@@ -59,13 +79,12 @@ printf "\n*******\n"
 mkdir -p $OUT_DIR
 #### 2. split gps data & image data into different csv files
 # save stdout to variables
+
 # python $CURR_DIR/split_csv.py -c $GPS_LOG -tc datetime -o $OUT_DIR -t 300
+# python $CURR_DIR/split_csv.py -c $OUT_IMG_EXIF -tc DateTimeOriginal -o $OUT_DIR -t 300 -f "%Y:%m:%d %H:%M:%S"
 
-python $CURR_DIR/split_csv.py -c $GPS_LOG -tc datetime -o $OUT_DIR -t 300
-python $CURR_DIR/split_csv.py -c $OUT_IMG_EXIF -tc DateTimeOriginal -o $OUT_DIR -t 300 -f "%Y:%m:%d %H:%M:%S"
-
-GPS_SPLIT_OUT=$(python $CURR_DIR/split_csv.py -c $GPS_LOG -tc datetime -o $OUT_DIR -t 300) 
-EXIF_SPLIT_OUT=$(python $CURR_DIR/split_csv.py -c $OUT_IMG_EXIF -tc DateTimeOriginal -o $OUT_DIR -t 300 -f "%Y:%m:%d %H:%M:%S")
+GPS_SPLIT_OUT=$(run_and_capture python $CURR_DIR/split_csv.py -c $GPS_LOG -tc datetime -o $OUT_DIR -t 300) 
+EXIF_SPLIT_OUT=$(run_and_capture python $CURR_DIR/split_csv.py -c $OUT_IMG_EXIF -tc DateTimeOriginal -o $OUT_DIR -t 300 -f "%Y:%m:%d %H:%M:%S")
 
 BASE_GPS_LOG=$(basename ${GPS_LOG})
 BASENAME_GPS_LOG=${BASE_GPS_LOG%.*}
