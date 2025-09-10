@@ -57,14 +57,15 @@ printf "\n*******\n"
 ### 1. make a directory #####
 
 mkdir -p $OUT_DIR
-
 #### 2. split gps data & image data into different csv files
 # save stdout to variables
+# python $CURR_DIR/split_csv.py -c $GPS_LOG -tc datetime -o $OUT_DIR -t 300
+
+python $CURR_DIR/split_csv.py -c $GPS_LOG -tc datetime -o $OUT_DIR -t 300
+python $CURR_DIR/split_csv.py -c $OUT_IMG_EXIF -tc DateTimeOriginal -o $OUT_DIR -t 300 -f "%Y:%m:%d %H:%M:%S"
+
 GPS_SPLIT_OUT=$(python $CURR_DIR/split_csv.py -c $GPS_LOG -tc datetime -o $OUT_DIR -t 300) 
 EXIF_SPLIT_OUT=$(python $CURR_DIR/split_csv.py -c $OUT_IMG_EXIF -tc DateTimeOriginal -o $OUT_DIR -t 300 -f "%Y:%m:%d %H:%M:%S")
-
-echo -e "$GPS_SPLIT_OUT"
-echo -e "$EXIF_SPLIT_OUT"
 
 BASE_GPS_LOG=$(basename ${GPS_LOG})
 BASENAME_GPS_LOG=${BASE_GPS_LOG%.*}
