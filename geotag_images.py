@@ -22,6 +22,8 @@ try:
     matched_data_path = args.matched_csv
     print(f"path to matched csv data:{matched_data_path}")
     fin_result = pd.read_csv(matched_data_path)
+    # remove trailing white space in the column header just in case
+    fin_result.columns = fin_result.columns.str.strip()
 
 except Exception as e:
     print(f"Error {e}")
