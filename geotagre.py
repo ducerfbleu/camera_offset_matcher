@@ -155,6 +155,8 @@ def match_timestamps_idx(gps_df, camera_df,
     df2['datetime'] = pd.to_datetime(
             camera_df[colname_camera], #format='%Y:%m:%d %H:%M:%S'
             )
+    # print(df1)
+    # print(df2)
 
     # sort by timestamp
     df1 = df1.sort_values(by = 'datetime', 
@@ -165,7 +167,7 @@ def match_timestamps_idx(gps_df, camera_df,
             ascending = ASCENDING_TF
             ).reset_index(
             drop = True)
-    print(df2.head())
+    # print(df2.head())
 
     matched_data = []
     # print(len(df2))
@@ -182,10 +184,14 @@ def match_timestamps_idx(gps_df, camera_df,
         camera_time = camera_row['datetime']
         closest_gps_ordered = (gps_df_copy['datetime'] - camera_time).abs().argsort().to_list()
         candidate_idx_ordered = [x for x in closest_gps_ordered if x not in ls_matching_gps_idx]
-        closest_gps_idx = candidate_idx_ordered[0]
-        closest_gps_time = gps_df_copy.iloc[closest_gps_ordered[0]]['datetime']
-        ls_matching_gps_idx += [closest_gps_idx] #[matching_gps_id]
-        ls_timediff += [np.abs(camera_time - closest_gps_time)]
+        # print(len(candidate_idx_ordered))
+        if len(candidate_idx_ordered)==0:
+            pass
+        else:
+            closest_gps_idx = candidate_idx_ordered[0]
+            closest_gps_time = gps_df_copy.iloc[closest_gps_ordered[0]]['datetime']
+            ls_matching_gps_idx += [closest_gps_idx] #[matching_gps_id]
+            ls_timediff += [np.abs(camera_time - closest_gps_time)]
   
     return ls_matching_gps_idx
 
